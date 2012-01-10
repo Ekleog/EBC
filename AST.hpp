@@ -9,25 +9,25 @@ class AST {
         virtual ~AST();
 };
 
-class Block : public AST {
+class BlockAST : public AST {
         std::vector<std::unique_ptr<AST>> stmts_;
     public:
         void add(std::unique_ptr<AST> stmt);
 };
 
-class Incr : public AST { };
-class Decr : public AST { };
+class IncrAST : public AST { };
+class DecrAST : public AST { };
 
-class Next : public AST { };
-class Prev : public AST { };
+class NextAST : public AST { };
+class PrevAST : public AST { };
 
-class Loop : public AST {
+class LoopAST : public AST {
         std::unique_ptr<AST> content_;
     public:
-        Loop(std::unique_ptr<AST> content);
+        LoopAST(std::unique_ptr<AST> content);
 };
 
-class  Input : public AST { };
-class Output : public AST { };
+class  InputAST : public AST { };
+class OutputAST : public AST { };
 
 #endif // lbf_AST_hpp

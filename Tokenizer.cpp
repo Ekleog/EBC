@@ -4,7 +4,7 @@
 Tokenizer::Tokenizer(std::istream & is) : is_(&is) { }
 
 Token Tokenizer::next() {
-    while (true) {
+    while (!end()) {
         switch (is_->get()) {
             case '+': return Token::Incr;
             case '-': return Token::Decr;
@@ -17,4 +17,9 @@ Token Tokenizer::next() {
             default : ;// retry
         }
     }
+    return Token::End;
+}
+
+bool Tokenizer::end() const {
+    return !is_->good();
 }

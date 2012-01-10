@@ -7,13 +7,15 @@ enum class Token {
     Incr , Decr ,
     Next , Prev ,
     LoopB, LoopE,
-    Input, Output
+    Input, Output,
+    End
 };
 
 class Tokenizer {
     public:
         Tokenizer(std::istream & is);
         Token next();
+        bool end() const;
 
     private:
         std::istream * is_;
