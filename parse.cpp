@@ -13,6 +13,7 @@ static std::unique_ptr<AST> parse_loop(Tokenizer & tokenizer) {
     while (true) {
         Token token = tokenizer.next();
         if (token == Token::LoopE) return std::move(ast);
+        if (token == Token::End  ) fail("Syntax error : non closed loop found");
         ast->add(parse_token(token, tokenizer));
     }
 }
