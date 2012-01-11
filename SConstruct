@@ -1,8 +1,9 @@
 fl = [ # file list
-    'Tokenizer.cpp',
     'AST.cpp',
-    'parse.cpp',
     'helpers.cpp',
+    'parse.cpp',
+    'Tokenizer.cpp',
+    'Visitor.cpp',
 ]
 
 test_fl = fl + [
