@@ -9,13 +9,14 @@ typedef std::unique_ptr<AST> ptr;
 static std::unique_ptr<AST> parse_token(Token, Tokenizer &);
 
 static std::unique_ptr<AST> parse_loop(Tokenizer & tokenizer) {
-    std::unique_ptr<BlockAST> ast(new BlockAST);
-    while (true) {
-        Token token = tokenizer.next();
-        if (token == Token::LoopE) return std::move(ast);
-        if (token == Token::End  ) fail("Syntax error : non closed loop found");
-        ast->add(parse_token(token, tokenizer));
+    std::unique_ptr<BlockAST> block(new BlockAST);
+    Token token = tokenizer.next();
+    while (token != Token::LoopE) {
+        if (token == Token::End) fail("Syntax error : non closed loop found");
+        block->add(parse_token(token, tokenizer));
+        token = tokenizer.next();
     }
+    return ptr{new LoopAST(std::move(block))};
 }
 
 static std::unique_ptr<AST> parse_token(Token token, Tokenizer & t) {
