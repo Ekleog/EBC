@@ -1,5 +1,6 @@
 #include <memory>
 #include "AST.hpp"
+#include "helpers.hpp"
 #include "parse.hpp"
 #include "Tokenizer.hpp"
 
@@ -23,12 +24,14 @@ static std::unique_ptr<AST> parse_token(Token token, Tokenizer & t) {
         case Token::Next  : return ptr{new NextAST};
         case Token::Prev  : return ptr{new PrevAST};
         case Token::LoopB : return parse_loop(t);
-        case Token::LoopE : // TODO Syntax error -- ignore at the moment
-        case Token::End   : // TODO Programming error -- ignore at the moment
+        case Token::LoopE : fail("Syntax error : End of loop found while not in loop");
+        case Token::End   : fail("Internal error : Parsing an end-of-file token");
         case Token::Input : return ptr{new InputAST};
         case Token::Output: return ptr{new OutputAST};
     }
-    // TODO Programming error -- ignore at the moment
+    fail("Internal error : Encountered an unknown token");
+    // To g++ : Don't say me end of function could be reached : fail is going to exit !
+    return ptr{nullptr};
 }
 
 std::unique_ptr<AST> parse(Tokenizer & tokenizer) {
