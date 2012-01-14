@@ -6,7 +6,7 @@
 #include "Tokenizer.hpp"
 #include "Visitor.hpp"
 
-struct TestVisitor : public Visitor {
+struct CoutVisitor : public Visitor {
     virtual void visit(BlockAST & b) {
         std::cout << "{";
         for (AST * ast : b.stmts()) {
@@ -39,10 +39,53 @@ struct TestVisitor : public Visitor {
     }
 };
 
+struct StringVisitor : public Visitor {
+    std::string s;
+
+    virtual void visit(BlockAST & b) {
+        s += "{";
+        for (AST * ast : b.stmts()) {
+            ast->accept(*this);
+        }
+        s += "}";
+    }
+    virtual void visit(IncrAST &) {
+        s += "+";
+    }
+    virtual void visit(DecrAST &) {
+        s += "-";
+    }
+    virtual void visit(NextAST &) {
+        s += ">";
+    }
+    virtual void visit(PrevAST &) {
+        s += "<";
+    }
+    virtual void visit(LoopAST & l) {
+        s += "[";
+        l.content()->accept(*this);
+        s += "]";
+    }
+    virtual void visit(InputAST &) {
+        s += ",";
+    }
+    virtual void visit(OutputAST &) {
+        s += ".";
+    }
+};
+
 int main(int, char**) {
     Tokenizer tokenizer{std::cin};
+
     std::unique_ptr<AST> ast = parse(tokenizer);
     if (!(bool)ast) return 1;
-    TestVisitor visitor;
-    ast->accept(visitor);
+
+    CoutVisitor cout_visitor;
+    std::cout << "Cout Visitor   : ";
+    ast->accept(cout_visitor);
+    std::cout << std::endl;
+
+    StringVisitor string_visitor;
+    ast->accept(string_visitor);
+    std::cout << "String Visitor : " << string_visitor.s << std::endl;
 }
