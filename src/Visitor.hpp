@@ -1,5 +1,5 @@
-#ifndef lbf_Visitor_hpp
-#define lbf_Visitor_hpp 1
+#ifndef bbc_Visitor_hpp
+#define bbc_Visitor_hpp 1
 
 #include "AST.hpp"
 
@@ -16,4 +16,4 @@ class Visitor {
         virtual void visit(OutputAST &) = 0;
 };
 
-#endif // lbf_Visitor_hpp
+#endif // bbc_Visitor_hpp

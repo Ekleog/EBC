@@ -1,5 +1,5 @@
-#ifndef lbf_AST_hpp
-#define lbf_AST_hpp 1
+#ifndef bbc_AST_hpp
+#define bbc_AST_hpp 1
 
 #include <memory>
 #include <vector>
@@ -55,4 +55,4 @@ class OutputAST : public AST {
         void accept(Visitor & visitor);
 };
 
-#endif // lbf_AST_hpp
+#endif // bbc_AST_hpp

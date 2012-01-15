@@ -1,5 +1,5 @@
-#ifndef lbf_parse_hpp
-#define lbf_parse_hpp 1
+#ifndef bbc_parse_hpp
+#define bbc_parse_hpp 1
 
 #include <memory>
 #include "AST.hpp"
@@ -7,4 +7,4 @@
 
 std::unique_ptr<AST> parse(Tokenizer & tokenizer);
 
-#endif // lbf_parse_hpp
+#endif // bbc_parse_hpp
