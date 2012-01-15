@@ -1,1 +1,3 @@
-LBF is a BF compiler using LLVM.
+BBC is a Better Brainf*ck Compiler
+(TODO : Ugly name, I will have to find something better than 'better' -
+but I like the acronym !)
