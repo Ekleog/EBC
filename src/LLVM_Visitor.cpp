@@ -9,13 +9,11 @@ extern "C" unsigned char bbc_getc() { return getchar(); }
 extern "C" void bbc_putc(unsigned char c) { putchar(c); }
 
 LLVM_Visitor::LLVM_Visitor(LLVMContext & context)
-    : value_(nullptr),
+    : array_(nullptr),
       pos_(nullptr),
       context_(&context),
       builder_(*context_),
       module_("BBC", *context_) {
-    value_ = ConstantInt::get(*context_, APInt(8, 0));
-    pos_ = ConstantInt::get(*context_, APInt(16, 0));
     Function::Create(
         FunctionType::get(
             Type::getInt8Ty(*context_),
@@ -52,6 +50,13 @@ LLVM_Visitor::LLVM_Visitor(LLVMContext & context)
             )
         )
     );
+    array_ = builder_.CreateAlloca(
+        Type::getInt8Ty(*context_),
+        ConstantInt::get(*context_, APInt(32, 30000)),
+        "mem"
+    );
+    builder_.CreateMemSet(array_, ConstantInt::get(*context_, APInt(8, 0)), 30000, 1);
+    pos_ = ConstantInt::get(*context_, APInt(32, 0));
 }
 
 void LLVM_Visitor::finalize() {
@@ -64,39 +69,75 @@ void LLVM_Visitor::visit(BlockAST & b) {
     }
 }
 void LLVM_Visitor::visit(IncrAST &) {
-    value_ = builder_.CreateAdd(
-        value_,
-        ConstantInt::get(*context_, APInt(8, 1)),
-        "incr"
+    Value * ptr = posptr();
+    builder_.CreateStore(
+        builder_.CreateAdd(
+            builder_.CreateLoad(ptr, "val"),
+            ConstantInt::get(*context_, APInt(8, 1)),
+            "incr"
+        ),
+        ptr
     );
 }
 void LLVM_Visitor::visit(DecrAST &) {
-    value_ = builder_.CreateSub(
-        value_,
-        ConstantInt::get(*context_, APInt(8, 1)),
-        "decr"
+    Value * ptr = posptr();
+    builder_.CreateStore(
+        builder_.CreateSub(
+            builder_.CreateLoad(ptr, "val"),
+            ConstantInt::get(*context_, APInt(8, 1)),
+            "decr"
+        ),
+        ptr
     );
 }
 void LLVM_Visitor::visit(NextAST &) {
-    pos_ = builder_.CreateAdd(
-        pos_,
-        ConstantInt::get(*context_, APInt(16, 1)),
-        "next"
-    );
+    pos_ = builder_.CreateAdd(pos_, ConstantInt::get(*context_, APInt(32, 1)), "next");
 }
 void LLVM_Visitor::visit(PrevAST &) {
-    pos_ = builder_.CreateSub(
-        pos_,
-        ConstantInt::get(*context_, APInt(16, 1)),
-        "prev"
-    );
+    pos_ = builder_.CreateSub(pos_, ConstantInt::get(*context_, APInt(32, 1)), "prev");
 }
 void LLVM_Visitor::visit(LoopAST & l) {
+    // Retrieve data
+    BasicBlock * beforeBB = builder_.GetInsertBlock();
+    Function * function = beforeBB->getParent();
+    // Create BB, jump to it
+    BasicBlock * loopBB = BasicBlock::Create(*context_, "loop", function);
+    builder_.CreateBr(loopBB);
+    builder_.SetInsertPoint(loopBB);
+    // Generate the PHI node for pos
+    PHINode * phi = builder_.CreatePHI(Type::getInt32Ty(*context_), 2, "pos");
+    phi->addIncoming(pos_, beforeBB);
+    pos_ = phi;
+    // Generate content
     l.content()->accept(*this);
+    // Generate end condition
+    Value * cond = builder_.CreateICmpNE(
+        builder_.CreateLoad(posptr(), "val"),
+        ConstantInt::get(*context_, APInt(8, 0)),
+        "cond"
+    );
+    // Generate after-loop block
+    BasicBlock * afterBB = BasicBlock::Create(*context_, "end", function);
+    // Generate end-loop dbl-jmp
+    builder_.CreateCondBr(cond, loopBB, afterBB);
+    // Finalize PHI node
+    phi->addIncoming(pos_, loopBB);
+    // Go to end-of-loop block
+    builder_.SetInsertPoint(afterBB);
 }
 void LLVM_Visitor::visit(InputAST &) {
-    value_ = builder_.CreateCall(module_.getFunction("bbc_getc"), "in");
+    builder_.CreateStore(
+        builder_.CreateCall(module_.getFunction("bbc_getc"), "in"),
+        posptr()
+    );
 }
 void LLVM_Visitor::visit(OutputAST &) {
-    builder_.CreateCall(module_.getFunction("bbc_putc"), value_);
+    builder_.CreateCall(
+        module_.getFunction("bbc_putc"),
+        builder_.CreateLoad(pos_, "out")
+    );
+}
+
+Value * LLVM_Visitor::posptr() {
+    return builder_.CreateGEP(array_, pos_, "ptr");
 }
