@@ -1,12 +1,19 @@
 #include <cstdio>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/ExecutionEngine/JIT.h>
 #include <llvm/LLVMContext.h>
 #include "AST.hpp"
 #include "LLVM_Visitor.hpp"
 
 using namespace llvm;
 
-extern "C" unsigned char bbc_getc() { return getchar(); }
-extern "C" void bbc_putc(unsigned char c) { putchar(c); }
+extern "C" unsigned char bbc_getc() {
+    int c = getchar();
+    return c == EOF ? 0 : static_cast<unsigned char>(c);
+}
+extern "C" void bbc_putc(unsigned char c) {
+    putchar(c);
+}
 
 LLVM_Visitor::LLVM_Visitor(LLVMContext & context)
     : array_(nullptr),
@@ -60,7 +67,15 @@ LLVM_Visitor::LLVM_Visitor(LLVMContext & context)
 }
 
 void LLVM_Visitor::finalize() {
+    // Finalize the function
     builder_.CreateRetVoid();
+    // Now, run the JIT
+    Function * function = builder_.GetInsertBlock()->getParent();
+    EngineBuilder EB(&module_);
+    ExecutionEngine * EE = EB.create();
+    void * ptr = EE->getPointerToFunction(function);
+    void (*FP)() = (void (*)()) (std::intptr_t) ptr;
+    FP();
 }
 
 void LLVM_Visitor::visit(BlockAST & b) {
@@ -134,7 +149,7 @@ void LLVM_Visitor::visit(InputAST &) {
 void LLVM_Visitor::visit(OutputAST &) {
     builder_.CreateCall(
         module_.getFunction("bbc_putc"),
-        builder_.CreateLoad(pos_, "out")
+        builder_.CreateLoad(posptr(), "out")
     );
 }
 

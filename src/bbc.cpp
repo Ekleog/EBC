@@ -1,11 +1,14 @@
 #include <iostream>
 #include <memory>
+#include <llvm/Support/TargetSelect.h>
 #include "AST.hpp"
 #include "LLVM_Visitor.hpp"
 #include "parse.hpp"
 #include "Tokenizer.hpp"
 
 int main(int, char**) {
+    llvm::InitializeNativeTarget();
+
     Tokenizer tokenizer(std::cin);
 
     std::unique_ptr<AST> ast = parse(tokenizer);
