@@ -4,6 +4,9 @@ project ("bbc")
 set (CMAKE_CXX_FLAGS "-std=c++0x -ggdb3 -Wall -Wextra -pedantic")
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "bin")
 
+# Do not optimize LLVM IR
+#set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_OPT")
+
 ###############
 # Target test #
 ###############

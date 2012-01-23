@@ -19,4 +19,6 @@ int main(int, char**) {
     visitor.finalize();
 
     visitor.module_.dump();
+
+    visitor.run();
 }

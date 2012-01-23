@@ -1,7 +1,11 @@
 #include <cstdio>
-#include <llvm/Support/TargetSelect.h>
+#include <llvm/Analysis/Passes.h>
 #include <llvm/ExecutionEngine/JIT.h>
 #include <llvm/LLVMContext.h>
+#include <llvm/PassManager.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Target/TargetData.h>
+#include <llvm/Transforms/Scalar.h>
 #include "AST.hpp"
 #include "LLVM_Visitor.hpp"
 
@@ -19,8 +23,9 @@ LLVM_Visitor::LLVM_Visitor(LLVMContext & context)
     : array_(nullptr),
       pos_(nullptr),
       context_(&context),
-      builder_(*context_),
-      module_("BBC", *context_) {
+      module_("BBC", *context_),
+      engine_(EngineBuilder(&module_).create()),
+      builder_(*context_) {
     Function::Create(
         FunctionType::get(
             Type::getInt8Ty(*context_),
@@ -69,12 +74,25 @@ LLVM_Visitor::LLVM_Visitor(LLVMContext & context)
 void LLVM_Visitor::finalize() {
     // Finalize the function
     builder_.CreateRetVoid();
-    // Now, run the JIT
+    // Optimize it ?
+#ifndef NO_OPT
+    FunctionPassManager opt(&module_);
+    opt.add(new TargetData(*engine_->getTargetData()));
+    opt.add(createBasicAliasAnalysisPass());
+    opt.add(createInstructionCombiningPass());
+    opt.add(createReassociatePass());
+    opt.add(createGVNPass());
+    opt.add(createCFGSimplificationPass());
+    opt.doInitialization();
+
     Function * function = builder_.GetInsertBlock()->getParent();
-    EngineBuilder EB(&module_);
-    ExecutionEngine * EE = EB.create();
-    void * ptr = EE->getPointerToFunction(function);
-    void (*FP)() = (void (*)()) (std::intptr_t) ptr;
+    opt.run(*function);
+#endif
+}
+
+void LLVM_Visitor::run() {
+    Function * function = builder_.GetInsertBlock()->getParent();
+    void (*FP)() = (void (*)()) (std::intptr_t) engine_->getPointerToFunction(function);
     FP();
 }
 
