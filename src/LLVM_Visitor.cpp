@@ -94,26 +94,14 @@ void LLVM_Visitor::visit(BlockAST & b) {
     }
 }
 void LLVM_Visitor::visit(IncrAST &) {
-    Value * ptr = posptr();
-    builder_.CreateStore(
-        builder_.CreateAdd(
-            builder_.CreateLoad(ptr, "val"),
-            ConstantInt::get(*context_, APInt(8, 1)),
-            "incr"
-        ),
-        ptr
-    );
+    builder_.CreateAtomicRMW(AtomicRMWInst::Add,
+        posptr(), ConstantInt::get(*context_, APInt(8, 1)),
+        NotAtomic, SingleThread);
 }
 void LLVM_Visitor::visit(DecrAST &) {
-    Value * ptr = posptr();
-    builder_.CreateStore(
-        builder_.CreateSub(
-            builder_.CreateLoad(ptr, "val"),
-            ConstantInt::get(*context_, APInt(8, 1)),
-            "decr"
-        ),
-        ptr
-    );
+    builder_.CreateAtomicRMW(AtomicRMWInst::Sub,
+        posptr(), ConstantInt::get(*context_, APInt(8, 1)),
+        NotAtomic, SingleThread);
 }
 void LLVM_Visitor::visit(NextAST &) {
     pos_ = builder_.CreateAdd(pos_, ConstantInt::get(*context_, APInt(32, 1)), "next");
