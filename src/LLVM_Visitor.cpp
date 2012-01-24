@@ -11,14 +11,6 @@
 
 using namespace llvm;
 
-extern "C" unsigned char bbc_getc() {
-    int c = getchar();
-    return c == EOF ? 0 : static_cast<unsigned char>(c);
-}
-extern "C" void bbc_putc(unsigned char c) {
-    putchar(c);
-}
-
 LLVM_Visitor::LLVM_Visitor(LLVMContext & context)
     : array_(nullptr),
       pos_(nullptr),
@@ -28,22 +20,22 @@ LLVM_Visitor::LLVM_Visitor(LLVMContext & context)
       builder_(*context_) {
     Function::Create(
         FunctionType::get(
-            Type::getInt8Ty(*context_),
-            {},
+            Type::getVoidTy(*context_),
+            {Type::getInt32Ty(*context_)},
             false
         ),
         Function::ExternalLinkage,
-        "bbc_getc",
+        "putchar",
         &module_
     );
     Function::Create(
         FunctionType::get(
-             Type::getVoidTy(*context_),
-            {Type::getInt8Ty(*context_)},
+            Type::getInt32Ty(*context_),
+            {},
             false
         ),
         Function::ExternalLinkage,
-        "bbc_putc",
+        "getchar",
         &module_
     );
     builder_.SetInsertPoint(
@@ -159,16 +151,36 @@ void LLVM_Visitor::visit(LoopAST & l) {
     builder_.SetInsertPoint(afterBB);
 }
 void LLVM_Visitor::visit(InputAST &) {
-    builder_.CreateStore(
-        builder_.CreateCall(module_.getFunction("bbc_getc"), "in"),
-        posptr()
-    );
+    // Get function, generate new BBs
+    Function * function = builder_.GetInsertBlock()->getParent();
+    BasicBlock *  eofBB = BasicBlock::Create(*context_, "eof" , function);
+    BasicBlock * readBB = BasicBlock::Create(*context_, "read", function);
+    BasicBlock *  endBB = BasicBlock::Create(*context_, "end" , function);
+    // Read on stdin
+    Value * in = builder_.CreateCall(module_.getFunction("getchar"), "getc");
+    // If there an EOF ?
+    Value * eof = builder_.CreateICmpEQ(in, ConstantInt::get(*context_, APInt(32, EOF)), "eof");
+    builder_.CreateCondBr(eof, eofBB, readBB);
+    // Yes, EOF
+    builder_.SetInsertPoint(eofBB);
+    Value * val_eof = ConstantInt::get(*context_, APInt(8, 0));
+    builder_.CreateBr(endBB);
+    // No, not EOF
+    builder_.SetInsertPoint(readBB);
+    Value * val_read = builder_.CreateTrunc(in, Type::getInt8Ty(*context_), "cast");
+    builder_.CreateBr(endBB);
+    // Merge all that
+    builder_.SetInsertPoint(endBB);
+    PHINode * val = builder_.CreatePHI(Type::getInt8Ty(*context_), 2, "in");
+    val->addIncoming(val_eof ,  eofBB);
+    val->addIncoming(val_read, readBB);
+    // And store !
+    builder_.CreateStore(val, posptr());
 }
 void LLVM_Visitor::visit(OutputAST &) {
-    builder_.CreateCall(
-        module_.getFunction("bbc_putc"),
-        builder_.CreateLoad(posptr(), "out")
-    );
+    Value * out = builder_.CreateLoad(posptr(), "out");
+    Value * val = builder_.CreateZExt(out, Type::getInt32Ty(*context_), "putc");
+    builder_.CreateCall(module_.getFunction("putchar"), val);
 }
 
 Value * LLVM_Visitor::posptr() {
