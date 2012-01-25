@@ -15,6 +15,7 @@ class LLVM_Visitor : public Visitor {
         llvm::Value * array_;
         llvm::Value * pos_;
         llvm::LLVMContext * context_;
+        llvm::Function * main_;
         llvm::Module module_;
         llvm::ExecutionEngine * engine_;
         llvm::IRBuilder<> builder_;

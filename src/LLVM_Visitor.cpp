@@ -5,6 +5,7 @@
 #include <llvm/PassManager.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Target/TargetData.h>
+#include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/Transforms/Scalar.h>
 #include "AST.hpp"
 #include "LLVM_Visitor.hpp"
@@ -15,6 +16,7 @@ LLVM_Visitor::LLVM_Visitor(LLVMContext & context)
     : array_(nullptr),
       pos_(nullptr),
       context_(&context),
+      main_(nullptr),
       module_("BBC", *context_),
       engine_(EngineBuilder(&module_).create()),
       builder_(*context_) {
@@ -38,22 +40,17 @@ LLVM_Visitor::LLVM_Visitor(LLVMContext & context)
         "getchar",
         &module_
     );
-    builder_.SetInsertPoint(
-        BasicBlock::Create(
-            *context_,
-            "entry",
-            Function::Create(
-                FunctionType::get(
-                    Type::getVoidTy(*context_),
-                    {},
-                    false
-                ),
-                Function::InternalLinkage,
-                "bbc_main",
-                &module_
-            )
-        )
+    main_ = Function::Create(
+        FunctionType::get(
+            Type::getVoidTy(*context_),
+            {},
+            false
+        ),
+        Function::ExternalLinkage,
+        "main",
+        &module_
     );
+    builder_.SetInsertPoint(BasicBlock::Create(*context_, "entry", main_));
     array_ = builder_.CreateAlloca(
         Type::getInt8Ty(*context_),
         ConstantInt::get(*context_, APInt(32, 30000)),
@@ -68,23 +65,23 @@ void LLVM_Visitor::finalize() {
     builder_.CreateRetVoid();
     // Optimize it ?
 #ifndef NO_OPT
-    FunctionPassManager opt(&module_);
-    opt.add(new TargetData(*engine_->getTargetData()));
-    opt.add(createBasicAliasAnalysisPass());
-    opt.add(createInstructionCombiningPass());
-    opt.add(createReassociatePass());
-    opt.add(createGVNPass());
-    opt.add(createCFGSimplificationPass());
-    opt.doInitialization();
+      FunctionPassManager fpm(&module_);
+    /*Module*/PassManager mpm;
 
-    Function * function = builder_.GetInsertBlock()->getParent();
-    opt.run(*function);
+    PassManagerBuilder pmb;
+    pmb.OptLevel = 3;
+    pmb.SizeLevel = 0;
+
+    pmb.populateFunctionPassManager(fpm);
+    pmb.populateModulePassManager(mpm);
+
+    fpm.run(*main_);
+    mpm.run(module_);
 #endif
 }
 
 void LLVM_Visitor::run() {
-    Function * function = builder_.GetInsertBlock()->getParent();
-    void (*FP)() = (void (*)()) (std::intptr_t) engine_->getPointerToFunction(function);
+    void (*FP)() = (void (*)()) (std::intptr_t) engine_->getPointerToFunction(main_);
     FP();
 }
 
@@ -112,9 +109,8 @@ void LLVM_Visitor::visit(PrevAST &) {
 void LLVM_Visitor::visit(LoopAST & l) {
     // Retrieve data
     BasicBlock * beforeBB = builder_.GetInsertBlock();
-    Function * function = beforeBB->getParent();
     // Create BB, jump to it
-    BasicBlock * loopBB = BasicBlock::Create(*context_, "loop", function);
+    BasicBlock * loopBB = BasicBlock::Create(*context_, "loop", main_);
     builder_.CreateBr(loopBB);
     builder_.SetInsertPoint(loopBB);
     // Generate the PHI node for pos
@@ -130,7 +126,7 @@ void LLVM_Visitor::visit(LoopAST & l) {
         "cond"
     );
     // Generate after-loop block
-    BasicBlock * afterBB = BasicBlock::Create(*context_, "end", function);
+    BasicBlock * afterBB = BasicBlock::Create(*context_, "end", main_);
     // Generate end-loop dbl-jmp
     builder_.CreateCondBr(cond, loopBB, afterBB);
     // Finalize PHI node
@@ -140,10 +136,9 @@ void LLVM_Visitor::visit(LoopAST & l) {
 }
 void LLVM_Visitor::visit(InputAST &) {
     // Get function, generate new BBs
-    Function * function = builder_.GetInsertBlock()->getParent();
-    BasicBlock *  eofBB = BasicBlock::Create(*context_, "eof" , function);
-    BasicBlock * readBB = BasicBlock::Create(*context_, "read", function);
-    BasicBlock *  endBB = BasicBlock::Create(*context_, "end" , function);
+    BasicBlock *  eofBB = BasicBlock::Create(*context_, "eof" , main_);
+    BasicBlock * readBB = BasicBlock::Create(*context_, "read", main_);
+    BasicBlock *  endBB = BasicBlock::Create(*context_, "end" , main_);
     // Read on stdin
     Value * in = builder_.CreateCall(module_.getFunction("getchar"), "getc");
     // If there an EOF ?
