@@ -92,31 +92,21 @@ void LLVM_Visitor::visit(BlockAST & b) {
 }
 void LLVM_Visitor::visit(IncrAST &) {
     Value * ptr = posptr();
-    builder_.CreateStore(
-        builder_.CreateAdd(
-            builder_.CreateLoad(ptr, "val"),
-            ConstantInt::get(*context_, APInt(8, 1)),
-            "incr"
-        ),
-        ptr
-    );
+    Value * val = builder_.CreateLoad(ptr, "val");
+    Value * add = builder_.CreateAdd(val, ConstantInt::get(*context_, APInt(8, 1)), "add");
+    builder_.CreateStore(add, ptr);
 }
 void LLVM_Visitor::visit(DecrAST &) {
     Value * ptr = posptr();
-    builder_.CreateStore(
-        builder_.CreateSub(
-            builder_.CreateLoad(ptr, "val"),
-            ConstantInt::get(*context_, APInt(8, 1)),
-            "decr"
-        ),
-        ptr
-    );
+    Value * val = builder_.CreateLoad(ptr, "val");
+    Value * add = builder_.CreateSub(val, ConstantInt::get(*context_, APInt(8, 1)), "sub");
+    builder_.CreateStore(add, ptr);
 }
 void LLVM_Visitor::visit(NextAST &) {
-    pos_ = builder_.CreateAdd(pos_, ConstantInt::get(*context_, APInt(32, 1)), "next");
+    pos_ = builder_.CreateAdd(pos_, ConstantInt::get(*context_, APInt(32, 1)), "nxt");
 }
 void LLVM_Visitor::visit(PrevAST &) {
-    pos_ = builder_.CreateSub(pos_, ConstantInt::get(*context_, APInt(32, 1)), "prev");
+    pos_ = builder_.CreateSub(pos_, ConstantInt::get(*context_, APInt(32, 1)), "prv");
 }
 void LLVM_Visitor::visit(LoopAST & l) {
     // Retrieve data
