@@ -40,6 +40,7 @@ add_executable (
     bbc
     "src/AST.cpp"
     "src/bbc.cpp"
+    "src/compile_ir.cpp"
     "src/helpers.cpp"
     "src/LLVM_Visitor.cpp"
     "src/parse.cpp"

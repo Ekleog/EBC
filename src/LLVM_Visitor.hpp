@@ -11,12 +11,12 @@
 
 
 class LLVM_Visitor : public Visitor {
-    public:
+    private:
         llvm::Value * array_;
         llvm::Value * pos_;
         llvm::LLVMContext * context_;
         llvm::Function * main_;
-        llvm::Module module_;
+        llvm::Module * module_;
         llvm::ExecutionEngine * engine_;
         llvm::IRBuilder<> builder_;
 
@@ -24,7 +24,7 @@ class LLVM_Visitor : public Visitor {
     public:
         LLVM_Visitor(llvm::LLVMContext & context = llvm::getGlobalContext());
         void finalize();
-        void run();
+        llvm::Module * module();
 
         void visit( BlockAST &);
         void visit(  IncrAST &);

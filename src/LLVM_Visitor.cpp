@@ -17,8 +17,8 @@ LLVM_Visitor::LLVM_Visitor(LLVMContext & context)
       pos_(nullptr),
       context_(&context),
       main_(nullptr),
-      module_("BBC", *context_),
-      engine_(EngineBuilder(&module_).create()),
+      module_(new Module("BBC", *context_)),
+      engine_(EngineBuilder(module_).create()),
       builder_(*context_) {
     Function::Create(
         FunctionType::get(
@@ -28,7 +28,7 @@ LLVM_Visitor::LLVM_Visitor(LLVMContext & context)
         ),
         Function::ExternalLinkage,
         "putchar",
-        &module_
+        module_
     );
     Function::Create(
         FunctionType::get(
@@ -38,7 +38,7 @@ LLVM_Visitor::LLVM_Visitor(LLVMContext & context)
         ),
         Function::ExternalLinkage,
         "getchar",
-        &module_
+        module_
     );
     main_ = Function::Create(
         FunctionType::get(
@@ -48,7 +48,7 @@ LLVM_Visitor::LLVM_Visitor(LLVMContext & context)
         ),
         Function::ExternalLinkage,
         "main",
-        &module_
+        module_
     );
     builder_.SetInsertPoint(BasicBlock::Create(*context_, "entry", main_));
     array_ = builder_.CreateAlloca(
@@ -63,9 +63,10 @@ LLVM_Visitor::LLVM_Visitor(LLVMContext & context)
 void LLVM_Visitor::finalize() {
     // Finalize the function
     builder_.CreateRetVoid();
+    module_->dump();
     // Optimize it ?
 #ifndef NO_OPT
-      FunctionPassManager fpm(&module_);
+      FunctionPassManager fpm(module_);
     /*Module*/PassManager mpm;
 
     PassManagerBuilder pmb;
@@ -76,13 +77,12 @@ void LLVM_Visitor::finalize() {
     pmb.populateModulePassManager(mpm);
 
     fpm.run(*main_);
-    mpm.run(module_);
+    mpm.run(*module_);
 #endif
 }
 
-void LLVM_Visitor::run() {
-    void (*FP)() = (void (*)()) (std::intptr_t) engine_->getPointerToFunction(main_);
-    FP();
+llvm::Module * LLVM_Visitor::module() {
+    return module_;
 }
 
 void LLVM_Visitor::visit(BlockAST & b) {
@@ -142,7 +142,7 @@ void LLVM_Visitor::visit(InputAST &) {
     BasicBlock * readBB = BasicBlock::Create(*context_, "read", main_);
     BasicBlock *  endBB = BasicBlock::Create(*context_, "end" , main_);
     // Read on stdin
-    Value * in = builder_.CreateCall(module_.getFunction("getchar"), "getc");
+    Value * in = builder_.CreateCall(module_->getFunction("getchar"), "getc");
     // If there an EOF ?
     Value * eof = builder_.CreateICmpEQ(in, ConstantInt::get(*context_, APInt(32, EOF)), "eof");
     builder_.CreateCondBr(eof, eofBB, readBB);
@@ -165,7 +165,7 @@ void LLVM_Visitor::visit(InputAST &) {
 void LLVM_Visitor::visit(OutputAST &) {
     Value * out = builder_.CreateLoad(posptr(), "out");
     Value * val = builder_.CreateZExt(out, Type::getInt32Ty(*context_), "putc");
-    builder_.CreateCall(module_.getFunction("putchar"), val);
+    builder_.CreateCall(module_->getFunction("putchar"), val);
 }
 
 Value * LLVM_Visitor::posptr() {
