@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
     module->print(out_ll, nullptr);
 
     std::printf(("Outputting to " + base_fn + ".s ...\n").c_str());
-    ret = std::system(("llc " + base_fn + ".ll").c_str());
+    ret = std::system(("llc -O3 " + base_fn + ".ll").c_str());
     if (ret) return 5;
 
     std::printf(("Outputting to " + base_fn + ".o ...\n").c_str());
@@ -29,6 +29,6 @@ int main(int argc, char** argv) {
     if (ret) return 6;
 
     std::printf(("Outputting to " + base_fn + ".exe ...\n").c_str());
-    ret = std::system(("gcc " + base_fn + ".o -o " + base_fn + ".exe").c_str());
+    ret = std::system(("gcc -O3 " + base_fn + ".o -o " + base_fn + ".exe").c_str());
     if (ret) return 7;
 }
