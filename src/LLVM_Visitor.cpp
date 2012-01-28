@@ -17,7 +17,7 @@ LLVM_Visitor::LLVM_Visitor(LLVMContext & context)
       pos_(nullptr),
       context_(&context),
       main_(nullptr),
-      module_(new Module("BBC", *context_)),
+      module_(new Module("EBC", *context_)),
       engine_(EngineBuilder(module_).create()),
       builder_(*context_) {
     Function::Create(
