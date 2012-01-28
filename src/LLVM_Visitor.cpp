@@ -64,7 +64,6 @@ LLVM_Visitor::LLVM_Visitor(LLVMContext & context)
 void LLVM_Visitor::finalize() {
     // Finalize the function
     builder_.CreateRetVoid();
-    module_->dump();
     verifyFunction(*main_);
     verifyModule(*module_);
     // Optimize it ?
