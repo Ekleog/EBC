@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <llvm/Analysis/Passes.h>
+#include <llvm/Analysis/Verifier.h>
 #include <llvm/ExecutionEngine/JIT.h>
 #include <llvm/LLVMContext.h>
 #include <llvm/PassManager.h>
@@ -64,6 +65,8 @@ void LLVM_Visitor::finalize() {
     // Finalize the function
     builder_.CreateRetVoid();
     module_->dump();
+    verifyFunction(*main_);
+    verifyModule(*module_);
     // Optimize it ?
 #ifndef NO_OPT
       FunctionPassManager fpm(module_);
