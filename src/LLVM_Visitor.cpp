@@ -124,6 +124,7 @@ void LLVM_Visitor::visit(LoopAST & l) {
     pos_ = phi;
     // Generate content
     l.content()->accept(*this);
+    BasicBlock * loopendBB = builder_.GetInsertBlock();
     // Generate end condition
     Value * cond = builder_.CreateICmpNE(
         builder_.CreateLoad(posptr(), "val"),
@@ -135,7 +136,7 @@ void LLVM_Visitor::visit(LoopAST & l) {
     // Generate end-loop dbl-jmp
     builder_.CreateCondBr(cond, loopBB, afterBB);
     // Finalize PHI node
-    phi->addIncoming(pos_, loopBB);
+    phi->addIncoming(pos_, loopendBB);
     // Go to end-of-loop block
     builder_.SetInsertPoint(afterBB);
 }
