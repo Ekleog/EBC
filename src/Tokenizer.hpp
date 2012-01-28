@@ -1,5 +1,5 @@
-#ifndef bbc_Tokenizer_hpp
-#define bbc_Tokenizer_hpp 1
+#ifndef ebc_Tokenizer_hpp
+#define ebc_Tokenizer_hpp 1
 
 #include <iosfwd>
 
@@ -21,4 +21,4 @@ class Tokenizer {
         std::istream * is_;
 };
 
-#endif // bbc_Tokenizer_hpp
+#endif // ebc_Tokenizer_hpp

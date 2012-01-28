@@ -1,5 +1,5 @@
-#ifndef bbc_LLVM_Visitor_hpp
-#define bbc_LLVM_Visitor_hpp 1
+#ifndef ebc_LLVM_Visitor_hpp
+#define ebc_LLVM_Visitor_hpp 1
 
 #include <memory>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
@@ -36,4 +36,4 @@ class LLVM_Visitor : public Visitor {
         void visit(OutputAST &);
 };
 
-#endif // bbc_LLVM_Visitor_hpp
+#endif // ebc_LLVM_Visitor_hpp

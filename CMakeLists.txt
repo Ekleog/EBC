@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.8.7)
-project ("bbc")
+project ("ebc")
 
 set (CMAKE_CXX_FLAGS "-std=c++0x -ggdb3 -Wall -Wextra -pedantic")
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "bin")
@@ -22,7 +22,7 @@ add_executable (
 )
 
 ##############
-# Target bbc #
+# Target ebc #
 ##############
 
 find_package (LLVM)
@@ -37,9 +37,9 @@ link_directories (${LLVM_LIBRARY_DIRS})
 add_definitions (${LLVM_DEFINITIONS})
 
 add_executable (
-    bbc
+    ebc
     "src/AST.cpp"
-    "src/bbc.cpp"
+    "src/ebc.cpp"
     "src/compile_ir.cpp"
     "src/helpers.cpp"
     "src/LLVM_Visitor.cpp"
@@ -49,4 +49,4 @@ add_executable (
 )
 
 llvm_map_components_to_libraries (REQ_LLVM_LIBRARIES native ipo jit)
-target_link_libraries (bbc ${REQ_LLVM_LIBRARIES})
+target_link_libraries (ebc ${REQ_LLVM_LIBRARIES})
